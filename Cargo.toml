@@ -1,0 +1,11 @@
+[package]
+name = "llm-chat-cli"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+ratatui="0.29"
+crossterm = { version = "0.29", features = ["event-stream"] }
+tokio = { version = "1", features = ["full"] }
+unicode-width = "0.2"
+unicode-segmentation = "1.10"
