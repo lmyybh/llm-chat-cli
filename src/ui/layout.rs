@@ -5,12 +5,12 @@ use ratatui::{
     Frame,
 };
 
-use crate::{app::App, ui::input};
+use crate::{app::App, ui::{input, chat_view}};
 
 // layout 布局
 // 左边为 sidebar
 // 右边为 chat view 和 input
-pub fn draw_layout(frame: &mut Frame, app: &App, area: Rect) {
+pub fn draw_layout(frame: &mut Frame, app: &mut App, area: Rect) {
     // Split screen into left (sidebar) and right (chat + input)
     let chunks = Layout::default()
         .direction(Direction::Horizontal)
@@ -37,9 +37,6 @@ pub fn draw_layout(frame: &mut Frame, app: &App, area: Rect) {
         Block::default().borders(Borders::ALL).title("Sidebar"),
         sidebar_area,
     );
-    frame.render_widget(
-        Block::default().borders(Borders::ALL).title("Chat View"),
-        chat_area,
-    );
+    chat_view::render_chat_view(frame, app, chat_area);
     input::render_input(frame, app, input_area);
 }

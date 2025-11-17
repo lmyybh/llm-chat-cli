@@ -1,7 +1,7 @@
 // src/main.rs
 use std::io;
 use crossterm::{
-    event::{self, Event, DisableMouseCapture, EnableMouseCapture, KeyEventKind},
+    event::{self, Event, DisableMouseCapture, EnableMouseCapture, KeyEventKind, MouseEvent, MouseEventKind},
     execute,
     terminal::{EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode},
 };
@@ -9,6 +9,7 @@ use ratatui::{backend::CrosstermBackend, Terminal};
 
 mod app;
 mod ui;
+mod model;
 
 use app::App;
 
@@ -48,18 +49,34 @@ async fn run_app<B: ratatui::backend::Backend>(
     mut app: App,
 ) -> io::Result<()> {
     loop {
-        terminal.draw(|frame| ui::render(&app, frame))?;
+        terminal.draw(|frame| ui::render(&mut app, frame))?;
 
         if event::poll(std::time::Duration::from_millis(16))? {
-            if let Event::Key(key) = event::read()? {
-                if key.kind == KeyEventKind::Press {
-                    if key.code == crossterm::event::KeyCode::Char('c')
-                        && key.modifiers == crossterm::event::KeyModifiers::CONTROL
-                    {
-                        break;
+            match event::read()? {
+                Event::Key(key) => {
+                    if key.kind == KeyEventKind::Press {
+                        if key.code == crossterm::event::KeyCode::Char('c')
+                            && key.modifiers == crossterm::event::KeyModifiers::CONTROL
+                        {
+                            break;
+                        }
+                        app.handle_input_key(key);
                     }
-                    app.handle_input_key(key);
                 }
+
+                Event::Mouse(MouseEvent {kind, ..}) => {
+                    match kind {
+                        MouseEventKind::ScrollUp => {
+                            app.chat_scroll_offset = app.chat_scroll_offset.saturating_add(3);
+                        }
+                        MouseEventKind::ScrollDown => {
+                            app.chat_scroll_offset = app.chat_scroll_offset.saturating_sub(3);
+                        }
+                        _ => {}
+                    }
+                }
+
+                _ => {}
             }
         }
     }

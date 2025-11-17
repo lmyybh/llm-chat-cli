@@ -1,17 +1,38 @@
 // src/app.rs
 use unicode_segmentation::UnicodeSegmentation;
+use crate::model::{
+    role::Role,
+    message::Message,
+    conversation::Conversation,
+};
 
 pub struct App {
     pub input_buffer: String,
     pub input_cursor: usize,
+    pub conversations: Vec<Conversation>,
+    pub current_conversation_index: usize,
+    pub chat_scroll_offset: u16,
 }
 
 impl App {
     pub fn new() -> Self {
+        let mut conv = Conversation::new();
+        conv.add_message(Message::new(Role::Assistant, "你好，我是 LLM".to_string()));
         Self {
             input_buffer: String::new(),
             input_cursor: 0,
+            conversations: vec![conv],
+            current_conversation_index: 0,
+            chat_scroll_offset: 0,
         }
+    }
+
+    pub fn current_conversation(&self) -> &Conversation {
+        &self.conversations[self.current_conversation_index]
+    }
+
+    pub fn add_message_to_current_conversation(&mut self, message: Message) {
+        self.conversations[self.current_conversation_index].add_message(message);
     }
 
     // 支持中文字符的插入
@@ -40,8 +61,19 @@ impl App {
 
         match key.code {
             Enter => {
-                self.input_buffer.clear();
-                self.input_cursor = 0;
+                if !self.input_buffer.trim().is_empty() {
+                    let user_msg = Message::new(Role::User, self.input_buffer.clone());
+                    self.add_message_to_current_conversation(user_msg);
+
+                    // 模拟回复
+                    self.add_message_to_current_conversation(
+                        Message::new(Role::Assistant, "这是模拟的 LLM 回复。你可以继续输入！".to_string())
+                    );
+
+                    self.input_buffer.clear();
+                    self.input_cursor = 0;
+                    self.chat_scroll_offset = 0; // 发送新消息时，自动滚动到底部
+                }
             }
             Char(c) => {
                 self.insert_char(c);
