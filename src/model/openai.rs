@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 use uuid::Uuid;
 use serde::{Deserialize, Serialize};
 use chrono::{Local};
@@ -42,6 +43,8 @@ impl Message {
 #[derive(Debug, Clone)]
 pub struct Conversation {
     pub id: Uuid,
+    pub model: String,
+    pub api_url: String,
     pub messages: Vec<Message>,
 }
 
@@ -49,6 +52,8 @@ impl Conversation {
     pub fn new() -> Self {
         Self {
             id: Uuid::new_v4(),
+            model: "default".to_string(),
+            api_url: "http://localhost:8000/v1/chat/completions".to_string(),
             messages: Vec::new(),
         }
     }

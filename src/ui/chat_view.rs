@@ -52,7 +52,7 @@ impl RenderedMessage {
 pub fn render_chat_view(frame: &mut Frame, app: &mut App, area: Rect) {
     let block = Block::default()
         .borders(Borders::ALL)
-        .title("Chat");
+        .title(format!("Chat [{}] [{}]", app.current_conversation().model, app.current_conversation().api_url));
     frame.render_widget(block.clone(), area);
 
     let mut inner_area = block.inner(area);

@@ -17,10 +17,17 @@ pub struct App {
 
 impl App {
     pub fn new() -> Self {
+        let mut conv = Conversation::new();
+        let api_url = env::var("LLM_API_URL")
+            .unwrap_or_else(|_| "http://localhost:8000/v1/chat/completions".to_string());
+        let model = env::var("LLM_MODEL").unwrap_or_else(|_| "Qwen3/Qwen3-8B".to_string());
+        conv.model = model;
+        conv.api_url = api_url;
+
         Self {
             input_buffer: String::new(),
             input_cursor: 0,
-            conversations: vec![Conversation::new()],
+            conversations: vec![conv],
             current_conversation_index: 0,
             chat_scroll_offset: 0,
             llm_receiver: None,
@@ -89,15 +96,12 @@ impl App {
                     self.llm_receiver = Some(receiver);
 
                     // 流式请求
-                    let api_url = env::var("LLM_API_URL")
-                        .unwrap_or_else(|_| "http://localhost:8000/v1/chat/completions".to_string());
                     let api_key = env::var("LLM_API_KEY").ok();
-                    let model = env::var("LLM_MODEL").unwrap_or_else(|_| "Qwen3/Qwen3-8B".to_string());
 
                     stream_completion(
-                        api_url,
+                        self.current_conversation().api_url.clone(),
                         api_key,
-                        model,
+                        self.current_conversation().model.clone(),
                         self.current_conversation().messages.clone(),
                         sender,
                     );
