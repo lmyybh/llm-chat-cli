@@ -1,9 +1,13 @@
-// src/app.rs
+use std::sync::mpsc;
 use unicode_segmentation::UnicodeSegmentation;
-use crate::model::{
-    role::Role,
-    message::Message,
-    conversation::Conversation,
+use crate::{
+    model::{
+        role::Role,
+        message::Message,
+        conversation::Conversation,
+        openai::{ChatCompletionRequest, Message as ApiMessage}
+    },
+    llm::client::stream_completion,
 };
 
 pub struct App {
@@ -12,6 +16,8 @@ pub struct App {
     pub conversations: Vec<Conversation>,
     pub current_conversation_index: usize,
     pub chat_scroll_offset: u16,
+    pub llm_receiver: Option<mpsc::Receiver<String>>,
+    pub is_waiting_for_response: bool,
 }
 
 impl App {
@@ -24,6 +30,8 @@ impl App {
             conversations: vec![conv],
             current_conversation_index: 0,
             chat_scroll_offset: 0,
+            llm_receiver: None,
+            is_waiting_for_response: false,
         }
     }
 
@@ -33,6 +41,14 @@ impl App {
 
     pub fn add_message_to_current_conversation(&mut self, message: Message) {
         self.conversations[self.current_conversation_index].add_message(message);
+    }
+
+    pub fn add_streaming_content(&mut self, string: String) {
+        if let Some(last_msg) = self.conversations[self.current_conversation_index].messages.last_mut() {
+            if last_msg.role == Role::Assistant {
+                last_msg.content.push_str(&string);
+            }
+        }
     }
 
     // 支持中文字符的插入
@@ -65,13 +81,41 @@ impl App {
                     let user_msg = Message::new(Role::User, self.input_buffer.clone());
                     self.add_message_to_current_conversation(user_msg);
 
-                    // 模拟回复
+                    // 添加空的 Assistant 消息占位
                     self.add_message_to_current_conversation(
-                        Message::new(Role::Assistant, "这是模拟的 LLM 回复。你可以继续输入！".to_string())
+                        Message::new(Role::Assistant, "".to_string())
                     );
 
                     self.input_buffer.clear();
                     self.input_cursor = 0;
+
+                    self.is_waiting_for_response = true;
+                    let api_messages: Vec<ApiMessage> = self
+                        .current_conversation()
+                        .messages
+                        .iter()
+                        .map(|m| ApiMessage {
+                            role: match m.role {
+                                Role::User => "user".to_string(),
+                                Role::Assistant => "assistant".to_string(),
+                            },
+                            content: m.content.clone(),
+                        })
+                        .collect();
+
+                    // 创建 channel
+                    let (sender, receiver) = mpsc::channel();
+                    self.llm_receiver = Some(receiver);
+
+                    // 流式请求
+                    stream_completion(
+                        "http://localhost:8000/v1/chat/completions".to_string(),
+                        None,
+                        "Qwen3-8B".to_string(),
+                        api_messages,
+                        sender,
+                    );
+
                     self.chat_scroll_offset = 0; // 发送新消息时，自动滚动到底部
                 }
             }
