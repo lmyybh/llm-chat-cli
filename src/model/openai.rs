@@ -5,7 +5,9 @@ use core::fmt::{Display, Formatter, Result};
 
 #[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
 pub enum Role {
+    #[serde(rename = "user")]
     User,
+    #[serde(rename = "assistant")]
     Assistant,
 }
 
@@ -22,6 +24,7 @@ impl Display for Role {
 pub struct Message {
     pub role: Role,
     pub content: String,
+    #[serde(skip_serializing)]
     pub timestamp: String,
 }
 

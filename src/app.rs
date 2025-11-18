@@ -1,4 +1,4 @@
-use std::sync::mpsc;
+use std::{env, sync::mpsc};
 use unicode_segmentation::UnicodeSegmentation;
 use crate::{
     model::openai::{Role, Message, Conversation},
@@ -17,12 +17,10 @@ pub struct App {
 
 impl App {
     pub fn new() -> Self {
-        let mut conv = Conversation::new();
-        conv.add_message(Message::new(Role::Assistant, "你好，我是 LLM".to_string()));
         Self {
             input_buffer: String::new(),
             input_cursor: 0,
-            conversations: vec![conv],
+            conversations: vec![Conversation::new()],
             current_conversation_index: 0,
             chat_scroll_offset: 0,
             llm_receiver: None,
@@ -91,10 +89,15 @@ impl App {
                     self.llm_receiver = Some(receiver);
 
                     // 流式请求
+                    let api_url = env::var("LLM_API_URL")
+                        .unwrap_or_else(|_| "http://localhost:8000/v1/chat/completions".to_string());
+                    let api_key = env::var("LLM_API_KEY").ok();
+                    let model = env::var("LLM_MODEL").unwrap_or_else(|_| "Qwen3/Qwen3-8B".to_string());
+
                     stream_completion(
-                        "http://localhost:8000/v1/chat/completions".to_string(),
-                        None,
-                        "Qwen3-8B".to_string(),
+                        api_url,
+                        api_key,
+                        model,
                         self.current_conversation().messages.clone(),
                         sender,
                     );
@@ -121,5 +124,46 @@ impl App {
             }
             _ => {}
         }
+    }
+
+    // 处理流式输出
+    pub fn handle_streaming_response(&mut self) {
+        if self.llm_receiver.is_none() {
+            return;
+        }
+
+        let receiver = self.llm_receiver.take().unwrap();
+
+        let mut should_put_back = true;
+            let mut done = false;
+
+            // 非阻塞地读取所有可用 token
+            while let Ok(token) = receiver.try_recv() {
+                if token == "__DONE__" {
+                    done = true;
+                    should_put_back = false;
+                    break;
+                } else if token == "__ERROR__" {
+                    // 追加错误消息
+                    done = true;
+                    should_put_back = false;
+                    break;
+                } else {
+                    // 追加 token 到最新 Assistant 消息
+                    self.add_streaming_content(token);
+                    // 自动滚动到底部（如果用户没手动滚动）
+                    self.chat_scroll_offset = 0;
+                }
+            }
+
+            if done {
+                self.is_waiting_for_response = false;
+            }
+
+            // 如果还没结束，把 receiver 放回去
+            if should_put_back {
+                self.llm_receiver = Some(receiver);
+            }
+        
     }
 }

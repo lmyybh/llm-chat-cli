@@ -8,7 +8,7 @@ use crate::{app::App, model::openai::{Role, Message}};
 
 const USER_COLOR: Color = Color::Green;
 const ASSISTANT_COLOR: Color = Color::Blue;
-const MAX_BUBBLE_WIDTH_PRECENT: u16 = 30;
+const MAX_BUBBLE_WIDTH_PRECENT: u16 = 90;
 const BUBBLE_MARGIN: u16 = 1;
 const BUBBLE_SPACING: u16 = 1;
 

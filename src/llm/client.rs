@@ -25,7 +25,7 @@ pub fn stream_completion(
                 sampling_params: SamplingParams { 
                     temperature: Some(0.7), 
                     top_p: Some(1.0), 
-                    max_tokens: Some(1000), 
+                    max_tokens: None, 
                     stop: None 
                 },
             };
@@ -46,7 +46,16 @@ pub fn stream_completion(
             let response = match res {
                 Ok(resp) => {
                     if !resp.status().is_success() {
-                        eprintln!("LLM API error: {}", resp.status());
+                        let status = resp.status();
+                        let text = resp.text().await.unwrap_or_else(|e| {
+                            format!("<failed to read response body: {}>", e)
+                        });
+                        let msg = format!(
+                            "HTTP request failed\nStatus: {}\nResponse body: {}",
+                            status, text
+                        );
+                        eprintln!("{}", msg); // 👈 打印完整错误信息
+
                         let _ = sender.send("__ERROR__".to_string());
                         return;
                     }

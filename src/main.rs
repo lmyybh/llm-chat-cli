@@ -52,41 +52,7 @@ async fn run_app<B: ratatui::backend::Backend>(
     loop {
         terminal.draw(|frame| ui::render(app, frame))?;
 
-        if app.llm_receiver.is_some() {
-            // 安全地 take 出 receiver（app.llm_receiver 变为 None）
-            let receiver = app.llm_receiver.take().unwrap();
-
-            let mut should_put_back = true;
-            let mut done = false;
-
-            // 非阻塞地读取所有可用 token
-            while let Ok(token) = receiver.try_recv() {
-                if token == "__DONE__" {
-                    done = true;
-                    should_put_back = false;
-                    break;
-                } else if token == "__ERROR__" {
-                    // 追加错误消息
-                    done = true;
-                    should_put_back = false;
-                    break;
-                } else {
-                    // 追加 token 到最新 Assistant 消息
-                    app.add_streaming_content(token);
-                    // 自动滚动到底部（如果用户没手动滚动）
-                    app.chat_scroll_offset = 0;
-                }
-            }
-
-            if done {
-                app.is_waiting_for_response = false;
-            }
-
-            // 如果还没结束，把 receiver 放回去
-            if should_put_back {
-                app.llm_receiver = Some(receiver);
-            }
-        }
+        app.handle_streaming_response();
 
         if event::poll(std::time::Duration::from_millis(16))? {
             match event::read()? {
