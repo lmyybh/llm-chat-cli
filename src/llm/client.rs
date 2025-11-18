@@ -1,5 +1,4 @@
-use crate::model::openai::{ChatCompletionChunk, ChatCompletionRequest};
-use crate::model::openai::Message as ApiMessage;
+use crate::model::openai::{ChatCompletionChunk, ChatCompletionRequest, Message, SamplingParams};
 use futures_util::StreamExt;
 use reqwest::header::{HeaderMap, HeaderValue, AUTHORIZATION, CONTENT_TYPE};
 use std::sync::mpsc;
@@ -11,7 +10,7 @@ pub fn stream_completion(
     api_url: String,
     api_key: Option<String>,
     model: String,
-    messages: Vec<ApiMessage>,
+    messages: Vec<Message>,
     sender: mpsc::Sender<String>,
 ) {
     std::thread::spawn(move || {
@@ -22,8 +21,13 @@ pub fn stream_completion(
             let request_body = ChatCompletionRequest {
                 model,
                 messages,
-                stream: Some(true),
-                temperature: Some(0.7),
+                stream: true,
+                sampling_params: SamplingParams { 
+                    temperature: Some(0.7), 
+                    top_p: Some(1.0), 
+                    max_tokens: Some(1000), 
+                    stop: None 
+                },
             };
 
             let mut headers = HeaderMap::new();
@@ -92,6 +96,10 @@ pub fn stream_completion(
                                 }
 
                                 if let Ok(chunk) = serde_json::from_str::<ChatCompletionChunk>(data) {
+                                    if let Some(content) = chunk.choices.get(0).and_then(|c| c.delta.reasoning_content.as_ref()) {
+                                        let _ = sender.send(content.clone());
+                                    }
+
                                     if let Some(content) = chunk.choices.get(0).and_then(|c| c.delta.content.as_ref()) {
                                         let _ = sender.send(content.clone());
                                     }

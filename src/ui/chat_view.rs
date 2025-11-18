@@ -4,7 +4,7 @@ use ratatui::{
 use unicode_width::UnicodeWidthStr;
 use unicode_segmentation::UnicodeSegmentation;
 
-use crate::{app::App, model::{role::Role, message::Message}};
+use crate::{app::App, model::openai::{Role, Message}};
 
 const USER_COLOR: Color = Color::Green;
 const ASSISTANT_COLOR: Color = Color::Blue;
@@ -15,7 +15,7 @@ const BUBBLE_SPACING: u16 = 1;
 #[derive(Debug, Clone)]
 struct RenderedMessage {
     role: Role,
-    timestamp_str: String,
+    timestamp: String,
     content_lines: Vec<String>,
     info_height: u16,
     bubble_width: u16,
@@ -39,7 +39,7 @@ impl RenderedMessage {
 
         Self {
             role: msg.role.clone(),
-            timestamp_str: msg.timestamp.format("%H:%M:%S").to_string(),
+            timestamp: msg.timestamp.clone(),
             content_lines: wrapped_lines,
             info_height: 1,
             bubble_width: width,
@@ -133,7 +133,7 @@ pub fn render_chat_view(frame: &mut Frame, app: &mut App, area: Rect) {
         if info_draw_height > 0 {
             let info_rect = Rect {x: inner_area.x + 1, y: draw_y, width: 20, height: info_draw_height};
             frame.render_widget(Clear, info_rect);
-            let line = Line::from(format!("{} {}", msg.role.to_string(), msg.timestamp_str))
+            let line = Line::from(format!("{} {}", msg.role.to_string(), msg.timestamp))
                 .style(Style::default().fg(Color::DarkGray));
             frame.render_widget(Paragraph::new(Text::from(vec![line])), info_rect);
 

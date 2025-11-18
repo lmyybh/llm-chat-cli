@@ -1,12 +1,7 @@
 use std::sync::mpsc;
 use unicode_segmentation::UnicodeSegmentation;
 use crate::{
-    model::{
-        role::Role,
-        message::Message,
-        conversation::Conversation,
-        openai::{ChatCompletionRequest, Message as ApiMessage}
-    },
+    model::openai::{Role, Message, Conversation},
     llm::client::stream_completion,
 };
 
@@ -90,18 +85,6 @@ impl App {
                     self.input_cursor = 0;
 
                     self.is_waiting_for_response = true;
-                    let api_messages: Vec<ApiMessage> = self
-                        .current_conversation()
-                        .messages
-                        .iter()
-                        .map(|m| ApiMessage {
-                            role: match m.role {
-                                Role::User => "user".to_string(),
-                                Role::Assistant => "assistant".to_string(),
-                            },
-                            content: m.content.clone(),
-                        })
-                        .collect();
 
                     // 创建 channel
                     let (sender, receiver) = mpsc::channel();
@@ -112,7 +95,7 @@ impl App {
                         "http://localhost:8000/v1/chat/completions".to_string(),
                         None,
                         "Qwen3-8B".to_string(),
-                        api_messages,
+                        self.current_conversation().messages.clone(),
                         sender,
                     );
 

@@ -1,33 +1,101 @@
+use uuid::Uuid;
 use serde::{Deserialize, Serialize};
+use chrono::{Local};
+use core::fmt::{Display, Formatter, Result};  
+
+#[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
+pub enum Role {
+    User,
+    Assistant,
+}
+
+impl Display for Role {  
+    fn fmt(&self, f: &mut Formatter) -> Result {  
+        match self {  
+            Role::User => write!(f, "User"),  
+			Role::Assistant => write!(f, "Assistant"),
+		}  
+    }  
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Message {
+    pub role: Role,
+    pub content: String,
+    pub timestamp: String,
+}
+
+impl Message {
+    pub fn new(role: Role, content: String) -> Self {
+        Self {
+            role, 
+            content, 
+            timestamp: Local::now().format("%H:%M:%S").to_string()
+        }
+    }
+}
+
+
+#[derive(Debug, Clone)]
+pub struct Conversation {
+    pub id: Uuid,
+    pub messages: Vec<Message>,
+}
+
+impl Conversation {
+    pub fn new() -> Self {
+        Self {
+            id: Uuid::new_v4(),
+            messages: Vec::new(),
+        }
+    }
+
+    pub fn add_message(&mut self, message: Message) {
+        self.messages.push(message);
+    }
+}
+
 
 #[derive(Serialize)]
 pub struct ChatCompletionRequest {
     pub model: String,
     pub messages: Vec<Message>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub stream: Option<bool>,
+    pub stream: bool,
+    #[serde(flatten)]
+    pub sampling_params: SamplingParams,
+}
+
+#[derive(Serialize, Debug)]
+pub struct SamplingParams {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub temperature: Option<f32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub top_p: Option<f32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub max_tokens: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub stop: Option<Vec<String>>,
 }
 
-#[derive(Serialize, Deserialize, Clone)]
-pub struct Message {
-    pub role: String,
-    pub content: String,
-}
-
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct ChatCompletionChunk {
+    pub id: String,
+    pub object: String,
+    pub created: u64,
+    pub model: String,
     pub choices: Vec<Choice>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct Choice {
+    pub index: u32,
     pub delta: Delta,
     pub finish_reason: Option<String>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct Delta {
+    pub role: Option<String>,
     pub content: Option<String>,
+    pub reasoning_content: Option<String>,
 }
