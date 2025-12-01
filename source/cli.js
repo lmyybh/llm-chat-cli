@@ -8,13 +8,6 @@ const cli = meow(
 	`
 		Usage
 		  $ llm-chat-cli
-
-		Options
-			--name  Your name
-
-		Examples
-		  $ llm-chat-cli --name=Jane
-		  Hello, Jane
 	`,
 	{
 		importMeta: import.meta,
