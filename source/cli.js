@@ -14,4 +14,6 @@ const cli = meow(
 	},
 );
 
-render(<App name={cli.flags.name} />);
+console.clear();
+
+render(<App url={cli.flags.url} model={cli.flags.model} />);

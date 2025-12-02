@@ -1,12 +1,21 @@
 import React from 'react';
 import { Text, Box } from 'ink';
-import TextInput from 'ink-text-input';
+import TextInput from './TextInput.js';
 
-function InputBox({ value, onChange, placeholder, onSubmit }) {
+function InputBox({ 
+    value, onChange, placeholder, onSubmit, 
+    borderColor='white', borderDimColor=false, 
+    borderTop=true, borderBottom=true, borderLeft=true, borderRight=true,
+    identifier = '>', identifierColor = 'red'
+}) {
     return (
-        <Box borderStyle="round" borderColor="green" borderDimColor>
-            <Box margin={0}>
-                <Text color="red">{' > '}</Text>
+        <Box 
+            borderStyle="round" borderColor={borderColor} borderDimColor={borderDimColor} 
+            borderTop={borderTop} borderBottom={borderBottom} borderLeft={borderLeft} borderRight={borderRight}
+            flexGrow={1}
+        >
+            <Box>
+                <Text color={identifierColor}>{`${identifier} `}</Text>
             </Box>
 
             <TextInput
