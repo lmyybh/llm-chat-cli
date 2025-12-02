@@ -7,7 +7,7 @@ import App from './app.js';
 const cli = meow(
 	`
 		Usage
-		  $ llm-chat-cli
+		  $ llm-chat-cli --url=http://localhost:8000/v1 --model=Qwen/Qwen3-8B
 	`,
 	{
 		importMeta: import.meta,
