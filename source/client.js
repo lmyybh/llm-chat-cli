@@ -51,7 +51,7 @@ class OpenAIClient {
         this.client = new OpenAI({
             baseURL: this.baseURL,
             apiKey: this.apiKey,
-            timeout: 5000, // 10s
+            timeout: 5000,
             maxRetries: 3,
         });
     }
