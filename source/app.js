@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Text, Box, useApp } from 'ink';
 import InputBox from './components/InputBox.js';
 import MessageBox from './components/MessageBox.js';
@@ -38,33 +38,53 @@ function App({ url, model }) {
 		// 清空日志
 		setLog({ message: '', level: 'info' });
 
+		// Use refs to track the current assistant message
+		const assistantMessageRef = useRef(null);
+
 		// 添加 user 消息
 		const newMessages = [...messages, new Message('user', text)];
 		setMessages(newMessages);
 
 		// 添加 assistant 消息
-		setMessages(prev => [...prev, new Message('assistant', '')]);
+		const newAssistantMsg = new Message('assistant', '');
+		setMessages(prev => [...prev, newAssistantMsg]);
+		// Store reference to the message for streaming updates
+		assistantMessageRef.current = newAssistantMsg;
 
 		const onStart = () => {
 			setIsGenerating(true);
 		};
 
+		// Debounce update function to reduce flickering
+		const updateMessage = useCallback((content, reasoningContent) => {
+			if (assistantMessageRef.current) {
+				assistantMessageRef.current.setContent(content);
+				assistantMessageRef.current.setReasoningContent(reasoningContent);
+				// Force re-render by creating a new array reference
+				setMessages(prev => [...prev]);
+			}
+		}, []);
+
 		const onChunk = (full) => {
-			setMessages(prev => {
-				const updated = [...prev];
-				updated[updated.length - 1].setContent(full['content'].trim());
-				updated[updated.length - 1].setReasoningContent(full['reasoning_content'].trim());
-				return updated;
-			});
+			const content = full['content'].trim();
+			const reasoningContent = full['reasoning_content'].trim();
+			updateMessage(content, reasoningContent);
 		};
 
 		const onComplete = (full) => {
+			const content = full['content'].trim();
+			const reasoningContent = full['reasoning_content'].trim();
+			if (assistantMessageRef.current) {
+				assistantMessageRef.current.setContent(content);
+				assistantMessageRef.current.setReasoningContent(reasoningContent);
+				assistantMessageRef.current.updateTime();
+			}
+			// Final update to ensure the message is properly saved
 			setMessages(prev => {
-				const updated = [...prev];
-				updated[updated.length - 1].setContent(full['content'].trim());
-				updated[updated.length - 1].setReasoningContent(full['reasoning_content'].trim());
-				updated[updated.length - 1].updateTime();
-				return updated;
+				// Create a new message to ensure proper state update
+				const newMsg = assistantMessageRef.current;
+				assistantMessageRef.current = null;
+				return [...prev.slice(0, -1), newMsg];
 			});
 			setIsGenerating(false);
 		};

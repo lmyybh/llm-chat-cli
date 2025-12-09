@@ -1,25 +1,39 @@
-import React from 'react';
+import { useMemo } from 'react';
 import { Text, Box } from 'ink';
 import TextBox from './TextBox.js';
 
 function MessageBox({ message, bubbleTextColor, bubbleBorderColor }) {
+    // Memoize the metadata to prevent unnecessary recalculations
+    const metadata = useMemo(() => {
+        const hasContent = Boolean(message.content);
+        const duration = message.duration();
+        return {
+            timeStr: message.timeStr(),
+            hasContent,
+            durationStr: duration > 0 ? ` ${duration}s` : '',
+            statusStr: hasContent ? '' : ' reasoning...'
+        };
+    }, [message]);
+
+    // Memoize the text content
+    const textContent = useMemo(() => {
+        return message.content || message.reasoningContent || '';
+    }, [message.content, message.reasoningContent]);
+
     return (
-        <Box flexDirection="column" alignItems="flex-start">
+        <Box flexDirection="column" alignItems="flex-start" marginBottom={1}>
             <Text dimColor>
-                {
-                    message.role + " "
-                    + message.timeStr() + " "
-                    + (message.content ? "" : "reasoning...") + " "
-                    + (message.duration() > 0 ? (message.duration() + "s") : "")
-                }
+                {message.role} {metadata.timeStr}{metadata.statusStr}{metadata.durationStr}
             </Text>
-            <TextBox
-                text={message.content || message.reasoningContent}
-                textColor={bubbleTextColor}
-                borderColor={bubbleBorderColor}
-                dimColor={!message.content}
-                borderStyle={message.content ? 'round' : 'classic'}
-            />
+            <Box marginTop={0} minHeight={3}>
+                <TextBox
+                    text={textContent}
+                    textColor={bubbleTextColor}
+                    borderColor={bubbleBorderColor}
+                    dimColor={!metadata.hasContent}
+                    borderStyle={metadata.hasContent ? 'round' : 'classic'}
+                />
+            </Box>
         </Box>
     )
 }

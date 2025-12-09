@@ -7,8 +7,16 @@ function TextBox({ text, textColor, borderColor, dimColor, borderStyle='round' }
             borderStyle={borderStyle}
             borderColor={borderColor}
             borderDimColor={dimColor}
+            flexGrow={1}
+            width="100%"
         >
-            <Text color={textColor} dimColor={dimColor}>{text}</Text>
+            <Text
+                color={textColor}
+                dimColor={dimColor}
+                wrap="wrap"
+            >
+                {text || ' '}
+            </Text>
         </Box>
     );
 }
